@@ -1,88 +1,462 @@
-FORMAT: 1A
-HOST: http://polls.apiblueprint.org/
+FORMAT: 1A8
+HOST: https://api.offerpop.com/
 
-# Sandbox Test
+# jayshao Sandbox
 
-This is a test page to allow playing with conventions and the Apiary syntax
+Welcome to the Offerpop API reference! 
 
-## Questions Collection [/questions]
+This documentation lists and describes the individual resources you can used to manipulate objects on the Offerpop Platform.
 
-### List All Questions [GET]
-Getting a list of questions
+The Offerpop API is based on RESTful API conventions. Clients are 
+identified using OAuth access tokens, and responses are in HAL+JSON format. 
+To access and use Offerpop's API, you must have a current Offerpop subscription 
+and have agreed to the Offerpop's Terms of Serivce. 
 
+## Authentication & Authorization
+
+You can obtain an access token from within the Offerpop dashboard, under
+Library > APIs. That panel allows you to generate and retrieve tokens.
+
+There are 2 classes of token:
+
+* **READ-ONLY** or "Content API" tokens allow read-only access, though some potentially sensitive information like submission details (which may contain PII) will not be returned if accessed with a READ-ONLY token.
+* **READ-WRITE** or "Tag API" tokens allow read-write (e.g. to tags), and will return all submission details and forms available. These tokens are intended for Marketers direct use, and should not be shared publicly or with untrusted parties.
+
+For security purposes, Offerpop's Content API requires that all API requests:
+
+1. Use a current, valid access token
+2. Use HTTPS to secure calls to the API endpoints
+3. Send API requests from the domain(s) specified on the API page
+
+## Typical Server Responses
+
+* **200 OK** - The request was successful (some API calls may return 201 instead).
+* **201 Created** - The request has been fulfilled and resulted in a new resource being created.
+* **204 No Content** - The request was successful.
+* **400 Bad Request** - The request could not be understood or was missing required parameters.
+* **403 Forbidden** - Access denied.
+* **404 Not Found** - Resource was not found.
+* **405 Method Not Allowed** - Requested method is not supported for the specified resource.
+* **422 Unprocessable Entity**
+* **429 Too Many Requests** - Exceeded Offerpop API limits.
+* **503 Service Unavailable** - The service is temporary unavailable (e.g. scheduled Platform Maintenance). Try again later.
+
+If, after reading this documentation you still have questions, contact our 
+award winning Customer Support team at [support@offerpop.com](mailto:support@offerpop.com)
+
+# Group Content
+
+Offerpop's Content APIs allow you to curate and retrieve the content stored within your properties.
+            
+## UGC Item [/v1/ugc/{ugc_id}/{?access_token}]
+
+Retrieve a single UGC item by id.
+
+### Get UGC Item [GET]
+
++ Parameters
+    + ugc_id: 43992816 (required, number) - ID of the UGC item 
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (required, string) - Requires a READ or READ-WRITE access token.
+        
 + Response 200 (application/json)
+    + Attributes (ContentItem)
 
-        [
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 2048
-                    }, {
-                        "choice": "Python",
-                        "votes": 1024
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 512
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 256
-                    }
-                ]
-            }
-        ]
+## Content Filter [/v2/content/filters/{filter_id}{?access_token,page,page_size}]
 
-### Create a New Question [POST]
-You may create your own question using this action. It takes a JSON
-object containing a question and a collection of answers in the
-form of choices.
+Filters are designed to share content with consumers, external parties, vendors, or anyone else
+who are potentially untrusted. Filters allow you to create a view into your content, and 
+choose which items to reveal (in what order) without revealing the details of that
+search to your users.
+
+Read is the most commonly expected operation on filters - with a return syntax that is
+compatible with the Query API - the intent is that Queries and Filters can be used
+interchangeably - for instance between development and publishing.
+
+### Create Filter [POST /v2/content/filters/{?access_token}]
 
 + Request (application/json)
 
-        {
-            "question": "Favourite programming language?",
-            "choices": [
-                "Swift",
-                "Python",
-                "Objective-C",
-                "Ruby"
-            ]
-        }
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) - Requires a READ-WRITE access token.
 
-+ Response 201 (application/json)
-
++ Attributes
+    + q: `campaign:12345` (string, required) - Query string to use for filter
+    + sort_by (string, optional) - Item ordering. Defaults to default in Query API.
+        
++ Response 201
     + Headers
+    
+            Location: /v2/content/filters/123
 
-            Location: /questions/2
+### List Filters [GET /v2/content/filters/{?access_token}]
 
-    + Body
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) - Requires a READ-WRITE access token.
 
-            {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 0
-                    }, {
-                        "choice": "Python",
-                        "votes": 0
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 0
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 0
-                    }
-                ]
-            }
++ Response 200 (application/json)
 
-+ Response 401 (application/json)
++ Attributes (array[ContentFilter])
 
-    + Body
+### Read Filter Items [GET]
 
-            {
-                "message": "Access denied"
-            }
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) -  Requires a READ or READ-WRITE access token.
+    + page: 1 (number, optional) - Where in a stream of results to start
+    + page_size: 3 (number, optional) - Number of results to return from a single request
+        + Default: 50
+    + filter_id: 12345 (number)
+        
++ Response 200 (application/json)
+    + Attributes (ContentFilterResponse)
+
+### Update Filter [PATCH]
+
++ Request (application/json)
+
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) - Requires a READ-WRITE access token.
+    + filter_id: 12345 (number)
+
++ Attributes
+    + q: `campaign:12345` (string, optional) - Query string to use for filter
+    + sort_by (string, optional) - Item ordering. Defaults to default in Query API.
+
++ Response 204
+    + Headers
+    
+            Location: /v2/content/filters/12345
+
+### Delete Filter [DELETE]
+
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) - Requires a READ-WRITE access token.
+    + filter_id: 12345 (number)
+
++ Response 204
+    + Headers
+    
+            Location: /v2/content/filters/12345
+
+## Content Query [/v2/content/items{?q,access_token,page,page_size,sort_by}]
+
+Queries expose a powerful and flexible mechanism for searching and filtering 
+content collected within a single property.
+
+**Note: This API is currently in BETA** and may change before final release.
+
+Some sample queries:
+* Find all images and videos that have not been rejected: `content.content_type:(image,video) AND approval_status:(app,pen)`
+* Find all user-submitted items collected by Campaign 1621 tagged with "Winners" `campaign:1621 AND featured:false tags.marketer_from_webapp.key:Winners`
+* Find all approved items tagged with "shirts" `approval_status:app AND tags.marketer_from_webapp.key:shirts`
+* Find all rejected items: `approval_status:rej`
+* Find content items associated with Conversion Unit 123: `activate_units.id:123`
+* Find content tagged with a location: `_exists_:content.platform_data.geo_data OR _exists_:content.platform_data.location`
+* Find tweets posted from Chicago `social_platform:twitter AND content.platform_data.location.name:Chicago A`
+
+The full query syntax supports many other operations:
+* Full-text search: `some words to search`
+* Field contains: `field:value`
+* Field contains one of several values: `title:(quick OR brown)`
+* Field contains an exact value: `author:"John Smith"`
+* Field missing or has empty value: `_missing_:title`
+* Field has any non-empty value: `_exists_:title`
+* Wildcards: `qu?ck bro*`
+* Ranges: 
+  * All days in 2012: `date:[2012-01-01 TO 2012-12-31]`
+  * Numbers 1..5 `count:[1 TO 5]`
+  * Tags between alpha and omega, excluding alpha and omega: `tag:{alpha TO omega}`
+  * Numbers from 1 up to but not including 5: `count:[1 TO 5}`
+* Booleans:
+  * The preferred operators are + (this term must be present) and - (this term must not be present). All other terms are optional. For example, the query `quick brown +fox -news` states that:
+    * fox must be present
+    * news must not be present
+    * quick and brown are optional — their presence increases the relevance
+
+Some other things to keep in mind
+* *Pagination*: Due to the fact that content may be added at any time, paging through multiple requests may result in duplicate entries (depending on sort order)
+* *Date Added vs. Date Posted*: Due to the behaviors of some social network APIs (particularly Instagram) it may be possible to recieve content at a later date than it was posted (e.g. based on a hashtag included in a comment)
+* *Caching*: During periods of peak demand, you may see cached results
+* *Access tokens*: If you have access to multiple properties, and queries you run don't return results you expect, please confirm you are using the correct access token for the property you intend to access
+
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (string) -  Requires a READ or READ-WRITE access token.
+    + page: 1 (number, optional) - Where in a stream of results to start
+    + page_size: 3 (number, optional) - Number of results to return from a single request
+        + Default: 50
+    + sort_by: author:desc (string, optional) - Defaults to date shared (posted to social network or uploaded)
+        + Default: `content.social_platform_created_on:desc`
+
+### Query Content [GET]
+
++ Request (application/html)
+
++ Parameters
+    + q: campaign:16252 (string) - Query String
+    
++ Response 200 (application/json)
+    + Attributes (ContentResponse)
+        
++ Response 403
+
+## UGC Collection [/v1/ugc/collections/{collection_id}/{?access_token,page,page_size,social_platform,claimed,order,seed,approval_status,media_type,has_activate_units,external_id,activate_unit_id,namespace,tags_required,author_id}]
+
+The UGC Collection resource allows you to retrieve UGC items gathered as part of a single campaign.
+
+**Note: This API is supported, but is no longer being actively enhanced.** It is being replaced by the Content Query API.
+
++ Parameters
+    + collection_id: 16252 (required, number) - ID of your Content or Commerce collection. Found in the URL of your curate screen.
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (required, string) - Requires a READ access token. Retrieving submission data requires a READ-WRITE access token.
+    + page: 1 (optional, number) - Page or offset within the content list
+        + Default: 1
+    + page_size: 8 (optional, number) - Number of items returned per page. Max 100.
+        + Default: 8
+    + approval_status: `app,rej,pen` (optional, array[string]) - Filters items by status defined under Curate. Can include 1 or more comma-separated values from: app,rej,pen
+    + social_platform: `twitter,instagram` (optional, array[string]) - Filters items by social platform. Can include 1 or more comma-separated values from: twitter,vinetweet,instagram,facebook,tumblr,direct
+    + claimed: `yes,no` (optional, string) - Filters items by claimed status. Can include 1 or more comma-separated values from: yes,no
+    + order: `random_sort` (required, enum[string]) - Sorts data in order desired. Defaults to `random_sort` 
+        + Members
+            + *random_sort*
+            + date_asc
+    + seed (optional, string) - A seed value for initializing random ordering, to ensure consistent pagination.
+    + media_type (optional, enum[string]) -  Filters data by media type. Can include 1 or more comma-separated values from: video, image, text
+    + has_activate_units: `yes,no` (optional, string) - Filters data by UGC with assigned conversion units. Can include 1 or more comma-separated values from: yes,no
+    + external_id (optional, string) - Filters items associated with a specific Conversion Unit identified by an external id.
+    + activate_unit_id (optional, string) - Filters items associated with a specific Conversion Unit. 
+    + namespace (optional, string) - Filters items tagged with a specific namespace. **Must be combined with tags_required.**
+    + tags_required (optional, string) - Filters items tagged with a specific key. **Must be combined with namespace.**
+    + author_id (optional, string) - Filters items posted by a particular author e.g. Instagram or Twitter username
+
+### Get Collection Items [GET]
++ Response 200 (application/json)
+    + Attributes (ContentResponse)
+
+## Tagging [/v1/tags/{?access_token}]
+
+### Add Tag to Content Items [POST]
+
+Finds or creates a tag with the given namespace and key and tags the UGC with it. 
+
++ Parameters
+    + access_token: QDfsYVfvdWOf0unLKqUPu4jfRHq3mZ (required, string) - Requires a READ-WRITE access token.
+
++ Request (application/json)
+    + Attributes (array[Tag])
+
++ Response 201
+
+### Remove Tag from Content Items [DELETE /v1/tags/{namespace}/{key}/{ugc_id}{?access_token}]
+
+Deletes a tag mapping from a single piece of content. 
+
++ Parameters
+    + access_token: QDfsYVfvdWOf0unLKqUPu4jfRHq3mZ (required, string) - Requires a READ-WRITE access token.
+    + namespace: offerpop (required, string) - Namespace for search
+    + key: shirt (required, string) - Key to search
+    + ugc_id: 43992816 (required, string) - Content Id to add/remove tags from
+
++ Response 204
+
+### Get Tag Info [GET /v1/tags/{namespace}/{key}/{?access_token}]
+
+Returns data on a specific tag including a list of content associated with that tag. 
+
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (required, string) - Requires a READ or READ-WRITE access token.
+    + namespace: namespace (required, string) - Namespace for search
+    + key: key (required, string) - Key to search
+
++ Response 200 (application/json)
+    + Attributes
+        + total_results: 1 (number)
+        + _embedded
+            + `ugc:tag` (array[UGC])
+            + namespace: offerpop
+            + key: shirts (string)
+
+### Get Tags associated with a UGC Item [GET /v1/tags/ugc/{ugc_id}/{?access_token}]
+
+Returns a list of all tags associated with a specific piece of content.
+
++ Parameters
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (required, string) - Requires a READ or READ-WRITE access token.
+    + ugc_id: 43992816 (required, number) - UGC ID of a piece of content
+    
++ Response 200 (application/json)
+    + Attributes
+        + total_results: 1 (number)
+        + _embedded (object)
+            + `ugc:tag` (array[TagDetails])
+
+# Group Conversion Units
+
+Conversion Units are actions that can be associated with content items, to drive
+purchase, signup, or other scenarios. Common Use-Cases involving Conversion Units:
+
+* Filtering UGC based on Conversion Unit
+* Categorizing UGC by Conversion Unit
+* Driving actions from custom UGC displays 
+
+For Frequently Asked Questions, please see our [knowledge base article on Conversion Units]
+(https://community.offerpop.com/docs/DOC-1264).
+
+## Conversion Units [/v1/activate_units/{?access_token}]
+
++ Parameters
+    + access_token: `lifUzxEAWau9VBhcqcOkinZtgyqQYe` (required, string) - Requires a READ or READ-WRITE access token.
+
+### Get a Property's Conversion Units [GET]
+
+Obtain a list of all the conversion units available in a given property
+
++ Response 200 (application/json)
+    + Attributes 
+        + `total_results` (number)
+        + `_embedded`
+            + `activate_unit:item` (array[ConversionUnit])
+
+### Get Conversion Unit details [GET /v1/activate_units/{id}/{?access_token}]
+
+Get details for a single conversion unit
+
++ Parameters
+    + id: 33173 (required, number) - Conversion Unit ID
+    + access_token: lifUzxEAWau9VBhcqcOkinZtgyqQYe (required, string) - Requires a READ or READ-WRITE access token.
+
++ Response 200 (application/json)
+    + Attributes (ConversionUnit)
+        
++ Response 404 (application/json)
+
+# Data Structures
+
+## Tag (object)
+- `ugc_ids` (array[number]) - List of items to which we want to add tags to
+  - Sample
+    - 43992816
+- namespace: offerpop (string) - Namespace in which to add the tag
+- key: shirts (string) - value to apply to the tag
+
+## TagDetails (object)
+- ugc (array[UGC])
+- namespace: offerpop
+- `_links`
+    - self (object)
+        - href: `https://api.offerpop.com/v1/tags/fish/yes/?access_token=I004txqPUwJHk8lJws85UVf8o6tNzX`
+- key: shirts
+
+## ContentResponse (object)
+- total_results: 1 (number)
+- _embedded (object)
+    - `ugc:item` (array[ContentItem])
+
+## ContentFilter (object)
+- id: 1 (required, number)
+- name: Best Photos (required, string)
+
+## ContentFilterResponse (object)
+- total_results: 1 (number)
+- _embedded (object)
+    - `ugc:item` (array[ContentFilterItem])
+    
+## ContentFilterItem (object)
+- `activate_units`: 123,234,345 (array[number])
+- `default_activate_unit` (FilterConversionUnit)
+- content (ContentItem)
+
+## ContentItem (object)
+- `activate_units` (array[ConversionUnit])
+- `entry_confirmation_sent`: false (optional, boolean, nullable)
+- `approval_status`: pen (enum) - Indicates whether an item has been approved. One of: `pen,app,rej`
+- campaign: 16252 (number)
+- `default_activate_unit` (ConversionUnit)
+- submission (object, nullable)
+- content
+    - platform_data
+        - geo_data (object)
+            - type: point (enum[string])
+                  - Sample
+                    - point
+                    - Polygon
+            - coordinates
+              - latitude: 34.393060722 (number)
+              - longitude: 132.460120278 (number)
+        - location
+          - `country_code`: US (string)
+          - url: https://api.twitter.com/1.1/geo/id/1d9a5370a355ab0c.json
+          - country: United States
+          - place_type: city
+          - bounding_box
+            - type: Polygon
+            - coordinates
+          - full_name: Chicago
+          - name: Chicago, IL (string)
+        - social_platform_original_url: https://instagram.com/p/9LrN4iTZNq/ (string)
+    - author (Author)
+    - text: `Wtaps Canvas Sneakers, Navy, size medium/US 9. (Fit US 10, narrow 10.5) $150 shipped. #wtaps #wtaps_dailypics #madeinjapan #wtapsforsale #neighborhoodforsale #wtvua #placingthingswheretheyshouldbe #wayoflife #visvim #visvimforsale #visvimgang #biancachandonforsale #biancachandon #palaceskateboards #supremeforsale #supremenyc #acrnm #arcteryxveilance #bronze56k #polarskateco` (string)
+    - `social_platform_created_on`: 2015-10-23T13:51:21Z
+    - platform_ref: 1102164603880444778_2068959963
+    - content_state: active
+    - social_platform: instagram
+    - created_on: 2015-10-23T13:52:13Z
+    - content_type: image
+    - media (Media)
+    -id: 69009704 (number)
+- shortened_permalink: http://bit.ly/1kzyJ63
+- created_on: 2015-10-23T13:52:13Z
+- hashtag
+    - social_platform: instagram
+    - id (number): 21919
+    - hashtag_text: arcteryxveilance
+- featured: false (boolean) - Whether orment not this is a "featured item"
+- configuration (string, nullable)
+- id: 43992816 (number)
+
+## ConversionUnit (FilterConversionUnit)
+- archived: false (boolean, optional)
+- managed: true (boolean, optional)
+- `created_on`: `2015-10-02T10:12:46Z` (string, required)
+- `click_unit_library`: 420 (number, optional, nullable)
+- last_modified: `2015-10-02T10:12:46Z` (string, required)
+- associated_contents: `123,124,125` (array[number], optional)
+- `activate_unit_library`: 420 (number, required)
+
+## FilterConversionUnit (object)
+- `image_url`: `https://s3.amazonaws.com/com.offerpop.services.media/images/media/560e56c0ef95a64962c14d37/560e56c0ef95a6477eb62eab.JPEG` (string, required) - location to download the image
+- name: Hooded Shell Jacket (string, optional)
+- `click_through_url`: http://www.futurism.me/products/fitted-insulated-pants?variant=6640861061 (string, required)
+- data (string, optional)
+- catalog_item (string, optional, nullable)
+- `catalog_image_url_src` (string, optional, nullable)
+- `external_id` (string, optional, nullable)
+- id: 1234 (number, required)
+- description (string, optional)
+
+## Author (object)
+- profile
+    - username: shoreman514 (string) 
+    - name: `CSKF: ima K.` (string)
+    - profile_link: `http://instagram.com/shoreman514` (string)
+    - avatar: https://scontent.cdninstagram.com/t51.2885-19/11809904_1639265219651797_1892122340_a.jpg
+- platform_id: 2068959963
+- social_platform: instagram
+- created_on: 2016-03-22T22:21:13Z (optional, string, nullable)
+- username: shoreman514 (string)
+- id: 18536003 (number)
+
+## Media (object)
+- platform_data
+    - url: https://instagram.com/p/9LrN4iTZNq/
+- original_url: https://s3.amazonaws.com/com.offerpop.services.media/images/media/54ac3103ef95a67c1cff8ef2/562a3b8e60c1c85527f3c01c.JPEG
+- base_url: https://s3.amazonaws.com/com.offerpop.services.media/images/media/54ac3103ef95a67c1cff8ef2
+- mediatype: image
+- social_platform: instagram
+- media_urls
+    - small_image: https://s3.amazonaws.com/com.offerpop.services.media/images/media/54ac3103ef95a67c1cff8ef2/562a3b8e60c1c85527f3c01d.JPEG
+    - medium_image: https://s3.amazonaws.com/com.offerpop.services.media/images/media/54ac3103ef95a67c1cff8ef2/562a3b8f60c1c85527f3c01e.JPEG
+    - large_image: https://s3.amazonaws.com/com.offerpop.services.media/images/media/54ac3103ef95a67c1cff8ef2/562a3b8e60c1c85527f3c01c.JPEG
+- id: 42017028 (number)
+
+## UGC (object)
+- id: 43992816 (number)
+- value: ` ` (string)
